@@ -1,0 +1,1454 @@
+Microsoft (R) Macro Assembler Version 14.28.29915.0	    07/08/21 13:14:58
+asm3_Q3 .asm						     Page 1 - 1
+
+
+
+				INCLUDE Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C ;OPTION CASEMAP:NONE		; optional: make identifiers case-sensitive
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C INCLUDE VirtualKeys.inc
+			      C ; VirtualKeys.inc
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+				INCLUDE asm3_Q3_data.inc
+ 00000000		      C .data
+ 00000000 32 33 35 38 31      C num byte "235813", 0
+	   33 00
+ = 00000007		      C N=Lengthof num
+ 00000007  0000000F [	      C res byte N*2+1 dup (0)
+	    00
+	   ]
+			      C 
+
+				;What does the program do? This program recives a string and it's size, and checks if it is an additive sequence or not.
+				;if not - it will print "false", if it is an additive sequence it will print the numbers that form the given sequence .
+
+				;registers used: above every function is an explanation of what the function does and whar registers were used and for what.
+				;in main: edx was used to print strings, and the registers esi, edx and edi were used to send parameters to the main function
+				;of this prigram: "isAddSeq". 
+
+ 00000016			.data
+ 00000016 49 6E 70 75 74	Input BYTE "Input: s = " , 0
+	   3A 20 73 20 3D
+	   20 00
+ 00000022 4F 75 74 70 75	Output BYTE "Output: ", 0
+	   74 3A 20 00
+ 0000002B 66 61 6C 73 65	falseOutput BYTE "false", 0
+	   00
+
+ 00000000			.code
+ 00000000			main PROC
+ 00000000  BA 00000016 R	mov edx, OFFSET INPUT
+ 00000005  E8 00000000 E	call WriteString
+ 0000000A  BA 00000000 R	mov edx, OFFSET num
+ 0000000F  E8 00000000 E	call writeString
+
+
+ 00000014  BE 00000000 R	mov esi, OFFSET NUM
+ 00000019  BA 00000007		mov EDX, N
+ 0000001E  BF 00000007 R	mov EDI, OFFSET res
+ 00000023  56			push esi
+ 00000024  52			push edx
+ 00000025  57			push edi
+ 00000026  E8 00000286		call IsAddSeq
+
+ 0000002B  E8 00000000 E	 call crlf
+ 00000030  E8 00000000 E	 call crlf
+ 00000035  BA 00000022 R	mov edx, OFFSET Output
+ 0000003A  E8 00000000 E	call writeString
+ 0000003F  BA 00000007 R	mov edx, OFFSET res
+ 00000044  80 3A 00		cmp BYTE PTR[edx], 0
+ 00000047  74 07		JZ ReturnedFalse
+
+ 00000049  E8 00000000 E	call writeString
+ 0000004E  EB 0A		jmp endMain 
+
+ 00000050			ReturnedFalse:
+ 00000050  BA 0000002B R	mov edx, OFFSET falseOutput
+ 00000055  E8 00000000 E	call WriteString
+
+ 0000005A			endMain:
+
+
+						exit
+ 0000005A  6A 00	   *	    push   +000000000h
+ 0000005C  E8 00000000 E   *	    call   ExitProcess
+
+ 00000061					main ENDP
+
+				;------------------------------------
+				;function explained: checks if string valid
+				;registers uded: parameters: esi - len, edi - adress of string. al - boolian result
+				;adress is 4 bytes to is stored in a full register, len is unkown so also stored in a 4 byte register
+ 00000061			IsValid PROC uses ESI EDI ;boolian function, returns true/false in al
+ 00000061  56		   *	    push   esi
+ 00000062  57		   *	    push   edi
+ 00000063  55				push EBP
+ 00000064  8B EC			mov EBP, ESP;ADDED USES + 8
+					;---------------
+ 00000066  8B 75 14			mov esi, [ebp + 20] ;len of string
+ 00000069  8B 7D 10			mov edi, [ebp + 16] ;adress of string
+ 0000006C  83 FE 01			cmp esi, 1
+ 0000006F  72 09			jb notGreater
+ 00000071  80 3F 30			cmp BYTE PTR[edi], "0"
+ 00000074  75 04			jnz notEquel
+ 00000076  B0 00			mov al, 0
+ 00000078  EB 02			jmp endOfFunction
+
+ 0000007A				notGreater:
+ 0000007A				notEquel:
+ 0000007A  B0 01			mov al, 1
+
+ 0000007C				endOfFunction:
+					;---------------
+ 0000007C  8B E5			mov ESP, EBP
+ 0000007E  5D				pop EBP
+ 0000007F  5F		   *	    pop    edi
+ 00000080  5E		   *	    pop    esi
+ 00000081  C2 0008			ret 8 ;make sure  is 8
+ 00000084				IsValid ENDP
+
+					;----------------------------------------------------------------------------------
+					;function explained: this function returns the numeric value of the char recived in the string
+					;registers used: parameter list: edx - position, esi - len, edi - adress of string. al holds result
+					;adress are stored in a 4 byte register, pos and len are unkown so they also stored in a 4 byte register
+ 00000084				Val PROC uses EDX ESI EDI ;added uses, +12 to each ebp
+ 00000084  52		   *	    push   edx
+ 00000085  56		   *	    push   esi
+ 00000086  57		   *	    push   edi
+ 00000087  55				push EBP
+ 00000088  8B EC			mov EBP, ESP
+					;--------------
+ 0000008A  8B 55 1C			mov edx, [ebp + 28]  ;position
+ 0000008D  8B 75 18			mov esi, [ebp + 24]  ;len of string
+ 00000090  8B 7D 14			mov edi, [ebp + 20]   ;adress of string
+
+ 00000093  4E				dec esi ;len - 1
+ 00000094  3B D6			cmp edx, esi
+ 00000096  76 04			JBE posInRnge
+ 00000098  B0 00			mov al, 0
+ 0000009A  EB 06			jmp endOfFunction
+ 0000009C				posInRnge:
+ 0000009C  03 FA			add edi, edx
+ 0000009E  8A 07			mov al, BYTE PTR[edi]
+ 000000A0  2C 30			sub al, "0"
+ 000000A2				endOfFunction: 
+					;---------------
+ 000000A2  8B E5			mov ESP, EBP
+ 000000A4  5D				pop EBP
+ 000000A5  5F		   *	    pop    edi
+ 000000A6  5E		   *	    pop    esi
+ 000000A7  5A		   *	    pop    edx
+ 000000A8  C2 000C			ret 12 ;make sure  is 8
+ 000000AB				Val ENDP
+
+					;-------------------------------------
+					;function explained: this function recives two strings and returns their sum (as a string)
+					;registers used: parmeters: edi - adress of string a, edx - len a, esi -adress of string b, ebx - len b
+					;eax- holds adress of res string, al temp for val returned from val func, ecx + edx + eax also used for div and
+					;edi also used to hold modelu of div
+					;adresses are 4 bytes, len are unkown so they are stored also in a 4 byte register
+
+ 000000AB				AddString PROC
+ =-00000004				modeluTemp = -4
+ 000000AB  55				push EBP
+ 000000AC  8B EC			mov EBP, ESP
+					;-------------
+ 000000AE  8B 45 18			mov EAX, [ebp + 24] ;ah is sum
+ 000000B1  8B 7D 14			mov edi, [ebp + 20] ;adress of string a
+ 000000B4  8B 55 10			mov edx, [ebp + 16]  ;len of string a
+ 000000B7  8B 75 0C			mov esi, [ebp + 12]  ;adress of string b
+ 000000BA  8B 5D 08			mov ebx, [ebp + 8]   ;len of string b
+ 000000BD  83 EC 04			sub esp, 4
+ 000000C0  83 EA 01			sub edx, 1  ; to get real size
+ 000000C3  83 EB 01			sub ebx, 1 ;to get real size
+ 000000C6  B9 00000000			mov ECX, 0 ;cl is t
+ 000000CB  BE 00000000			mov ESI, 0;ch is carry
+ 000000D0  8B C6			mov EAX, ESI  ;initalize sum to zero
+
+ 000000D2  8D 75 FC			lea esi, [EBP + modeluTemp]
+ 000000D5  46				inc esi;now we will put end of string symbol
+ 000000D6  C6 06 00			mov BYTE PTR[ESI], 0;modelu is of 10 so will always be 1- 9. only need 2 bytes
+ 000000D9  8B 75 0C			mov esi, [ebp + 12]  ;adress of string b
+ 000000DC  BE 00000000			mov esi, 0
+ 000000E1				addingStringLoop:
+ 000000E1  B9 00000000			mov ECX, 0 ;cl is t
+ 000000E6  52				push edx
+ 000000E7  53				push ebx
+					;----------
+ 000000E8  50				push EAX
+ 000000E9  56				push ESI
+
+ 000000EA  52				push edx ;call val with A
+ 000000EB  FF 75 10			push [ebp + 16]
+ 000000EE  FF 75 14			push [ebp + 20]
+ 000000F1  E8 FFFFFF8E			call Val
+ 000000F6  0F B6 F0			movzx ESI , al
+ 000000F9  03 CE			add ECX, ESI
+
+ 000000FB  53				push ebx
+ 000000FC  FF 75 08			push [ebp + 8]
+ 000000FF  FF 75 0C			push  [ebp + 12]
+ 00000102  E8 FFFFFF7D			call Val
+ 00000107  0F B6 F0			movzx ESI, al
+ 0000010A  03 CE			add ECX, ESI ;t=val+ val
+ 0000010C  5E				pop ESI
+
+ 0000010D  58				pop EAX
+
+ 0000010E  03 CE			add ECX, ESI ;add carry to t
+
+					;push EDX
+ 00000110  50				push EAX
+ 00000111  BA 00000000			mov EDX, 0
+ 00000116  8B C1			mov EAX, ECX ;moves t to EAX
+ 00000118  B9 0000000A			mov ECX, 10
+ 0000011D  F7 F1			div ECX 
+ 0000011F  8B F0			mov ESI, EAX ; move carry to SI (t/10)
+ 00000121  5F				pop EDI ;holds value of sum
+ 00000122  57				push EDI
+ 00000123  56				push ESI
+ 00000124  8B 75 18			mov esi, [ebp + 24] ;puts sum in esi to send to function of pushback
+ 00000127  8D 7D FC			lea EDI,[ebp + modeluTemp] 
+					;mov al, BYTE PTR EDX
+ 0000012A  89 17			mov  [EDI], edx
+ 0000012C  8A 07			mov al, BYTE PTR[EDI]
+ 0000012E  04 30			add al, '0'
+ 00000130  88 07			mov BYTE PTR[EDI], al
+				 
+ 00000132  E8 0000006E			call PushBack
+ 00000137  5E				pop ESI
+ 00000138  5F				pop EDI
+
+
+					;add EDI, EDX ;adds modelu to sum
+					;mov EAX, EDI
+ 00000139  8B 45 18			mov EAX, [ebp + 24]
+					;add EAX, "0" ;change to PUSH BACK
+ 0000013C  5B				pop EBX
+ 0000013D  5A				pop EDX
+ 0000013E  83 EA 01			sub edx, 1
+ 00000141  83 EB 01			sub ebx, 1
+
+ 00000144  83 FA 00			cmp edx, 0
+ 00000147  7D 98			JGE addingStringLoop
+ 00000149  83 FB 00			cmp ebx, 0
+ 0000014C  7D 93			JGE addingStringLoop
+
+ 0000014E				lessThenZero:
+ 0000014E  83 FE 00			cmp ESI, 0
+ 00000151  74 00			JZ endOfFunction
+					
+
+ 00000153				endOfFunction:
+ 00000153  83 FE 00			cmp ESI, 0
+ 00000156  74 14			JZ isZero
+ 00000158  8B D6			mov edx, ESI
+ 0000015A  8B 75 18			mov ESI, [ebp + 24]
+ 0000015D  8D 7D FC			lea EDI, [ebp + modeluTemp]
+ 00000160  89 17			mov  [EDI], edx
+ 00000162  83 C2 30			add EDX, '0'
+ 00000165  89 17			mov [EDI], EDX
+ 00000167  E8 00000039			call PushBack
+
+ 0000016C				isZero:
+ 0000016C  8B 75 18			mov ESI, [ebp + 24]
+ 0000016F  E8 000000A5			call GetStringSize
+ 00000174  0F B6 CC			movzx ecx, ah
+ 00000177  8B 75 18			mov ESI, [ebp + 24]
+ 0000017A  E8 00000009			call reverse_string
+
+ 0000017F  83 C4 04			add esp, 4
+					;-------------
+ 00000182  8B E5			mov ESP, EBP
+ 00000184  5D				pop EBP
+ 00000185  C2 0014			ret 20 ;make sure  is 8
+ 00000188				AddString ENDP
+
+ 00000188				reverse_string PROC USES ECX ESI EBX EDX
+ 00000188  51		   *	    push   ecx
+ 00000189  56		   *	    push   esi
+ 0000018A  53		   *	    push   ebx
+ 0000018B  52		   *	    push   edx
+ 0000018C  8B D1			mov edx, ecx	; save ECX for the second loop
+ 0000018E			push_loop:
+				    ; we can push either word or dword so we
+				    ; copy the byte and extend it to a word
+ 0000018E  8A 1E		    mov bl, [esi]
+ 00000190  66| 53		    push bx ; we push also MSB = bh, but we ignore it
+ 00000192  46				inc esi
+ 00000193  E2 F9		    loop push_loop
+				    
+				    ; now we pop all the values, in the same
+				    ; order (i.e. the array from end to start)
+				    ; ... but pop-push is actually reversing
+					
+ 00000195  8B CA		    mov ecx, edx		; restore the counter
+ 00000197  2B F1			sub esi, ecx ; restore ESI
+ 00000199			pop_loop:
+ 00000199  66| 5B		    pop bx
+ 0000019B  88 1E		    mov [esi],bl
+ 0000019D  46				inc esi
+ 0000019E  E2 F9		    loop pop_loop 
+					ret
+ 000001A0  5A		   *	    pop    edx
+ 000001A1  5B		   *	    pop    ebx
+ 000001A2  5E		   *	    pop    esi
+ 000001A3  59		   *	    pop    ecx
+ 000001A4  C3		   *	    ret    00000h
+ 000001A5			reverse_string ENDP
+
+				;---------------------------------------------------
+				;function explained: this function attaches a string to the end of another string (string b to the end of string a)
+				;registers used: parameters: esi - string a adress, edi - string b adress. al, ah holds sized of strings. cl holds current char
+				;of string b and ebx is used as temp for size
+				;edi, esi holds adresses so they are 4 bytes each
+ 000001A5			PushBack PROC USES esi edi
+ 000001A5  56		   *	    push   esi
+ 000001A6  57		   *	    push   edi
+ 000001A7  57			push edi
+ 000001A8  E8 0000006C		call GetStringSize
+ 000001AD  8A C4		mov al, ah ;saves size of string in esi
+ 000001AF  56			push esi
+ 000001B0  8B F7		mov esi, edi
+ 000001B2  E8 00000062		call GetStringSize ;now size of string edi is in ah
+ 000001B7			skipThis:
+ 000001B7  5E			pop esi
+ 000001B8  5F			pop edi
+ 000001B9  0F B6 D8		movzx ebx, al ;check that works
+				;dec ebx;for debugging
+ 000001BC  03 F3		add esi, ebx
+				;inc esi
+ 000001BE  80 FC 00		cmp ah, 0
+ 000001C1  74 0D		jz emptyBstring
+ 000001C3			pushBackLoop:
+ 000001C3  8A 0F		mov cl, BYTE PTR [EDI]
+				;mov ch, BYTE PTR [ESI] ;for debugging
+ 000001C5  88 0E		mov BYTE PTR [ESI], cl
+ 000001C7  46			inc ESI
+ 000001C8  47			inc EDI
+ 000001C9  FE CC		dec ah
+
+ 000001CB  75 F6		jnz pushBackLoop
+ 000001CD  C6 06 00		mov BYTE PTR[ESI], 0 ;end symbol
+ 000001D0			emptyBstring:
+				ret
+ 000001D0  5F		   *	    pop    edi
+ 000001D1  5E		   *	    pop    esi
+ 000001D2  C3		   *	    ret    00000h
+ 000001D3			PushBack ENDP
+				;-----------------------------------------------------
+
+				;-----------------------------------------------------
+				;function explained: this function attaches a string to the start of another string (string b to the start of string a)
+				;registers used: parameters: esi - string a adress, edi - string b adress. al, ah holds sized of strings. cl holds current char
+				;ebx holds temp string
+				;edi, esi holds adresses so they are 4 bytes each
+ 000001D3			PushFront PROC USES esi edi
+ 000001D3  56		   *	    push   esi
+ 000001D4  57		   *	    push   edi
+ 000001D5  57			push edi
+ 000001D6  E8 0000003E		call GetStringSize
+ 000001DB  8A C4		mov al, ah ;saves size of string in esi
+ 000001DD  56			push esi
+ 000001DE  8B F7		mov esi, edi
+ 000001E0  E8 00000034		call GetStringSize ;now size of string edi is in ah
+ 000001E5  5E			pop esi
+ 000001E6  5F			pop edi
+ 000001E7  0F B6 DC		movzx ebx, ah ;check that works
+				;dec ebx;for debugging
+ 000001EA  56			push esi
+ 000001EB  57			push edi
+ 000001EC  03 FB		add edi, ebx
+				;inc esi
+ 000001EE  80 FC 00		cmp ah, 0
+ 000001F1  74 23		jz emptyBstring
+ 000001F3			pushFrontLoop:
+ 000001F3  8A 0E		mov cl, BYTE PTR [EsI]
+				;mov ch, BYTE PTR [ESI] ;for debugging
+ 000001F5  88 0F		mov BYTE PTR [EdI], cl
+ 000001F7  46			inc ESI
+ 000001F8  47			inc EDI
+ 000001F9  FE C8		dec al
+ 000001FB  75 F6		jnz pushFrontLoop
+ 000001FD  C6 07 00		mov BYTE PTR[EDI], 0
+ 00000200  5F			pop edi
+
+ 00000201  8B F7		mov esi, edi
+ 00000203  E8 00000011		call GetStringSize
+ 00000208  5E			pop esi
+ 00000209			transferToAString:
+ 00000209  8A 0F		mov cl, BYTE PTR[EDI]
+ 0000020B  88 0E		mov BYTE PTR[ESI], cl
+ 0000020D  47			inc edi
+ 0000020E  46			inc esi
+ 0000020F  FE CC		dec ah
+ 00000211  75 F6		jnz transferToAString
+ 00000213  C6 06 00		mov BYTE PTR[ESI], 0 ;end symbol
+ 00000216			emptyBstring:
+				ret
+ 00000216  5F		   *	    pop    edi
+ 00000217  5E		   *	    pop    esi
+ 00000218  C3		   *	    ret    00000h
+ 00000219			PushFront ENDP
+
+				;-----------------------------------------------------------
+				;function explained: this function recives adress offset string in esi and returns it's len in ah
+				;registers used: esi holds the string adress, cl is temp for current charm ah holds res
+				; esi holds adresses so it is 4 bytes 
+
+ 00000219			GetStringSize PROC uses esi
+ 00000219  56		   *	    push   esi
+ 0000021A  B4 00		mov ah, 0
+ 0000021C			findsize:
+ 0000021C  8A 0E		mov cl, BYTE PTR[ESI]
+ 0000021E  80 3E 00		cmp BYTE PTR [esi], 0
+ 00000221  74 05		jz ending
+ 00000223  FE C4		inc ah
+ 00000225  46			inc esi
+ 00000226  EB F4		jmp findsize
+ 00000228			ending:
+				ret
+ 00000228  5E		   *	    pop    esi
+ 00000229  C3		   *	    ret    00000h
+ 0000022A			GetStringSize ENDP
+
+				;----------------------------------------------------------------------
+				;function explanation: this functon recives two strings and returns true/ false if they are equal or not
+				;registers used: parameters: esi- first string adress, edi - second string adress, ch - holds string a size, ah - holds string b size
+				;dl and dh - temp to hold current charecters in both strings. al returns true/false if strings are equel or not
+				;edi, esi holds adresses so tehy are 4 bytes each
+ 0000022A			CmpStr PROC uses esi edi
+ 0000022A  56		   *	    push   esi
+ 0000022B  57		   *	    push   edi
+ 0000022C  E8 FFFFFFE8		call GetStringSize
+ 00000231  8A EC		mov ch, ah
+
+ 00000233  56			push esi
+ 00000234  8B F7		mov esi, edi
+ 00000236  E8 FFFFFFDE		call GetStringSize
+
+ 0000023B  5E			pop esi
+
+ 0000023C  3A EC		cmp ch, ah
+ 0000023E  75 12		JNZ ifNotEquel
+
+ 00000240  B0 01		mov al, 1 ;return 1 if not reached ifNotEquel
+ 00000242			cmpLoop:
+ 00000242  8A 16		mov dl, BYTE PTR[esi]
+ 00000244  8A 37		mov DH, BYTE PTR[edi]
+ 00000246  3A D6		cmp dl, dh
+ 00000248  75 08		jnz ifNotEquel
+ 0000024A  46			inc ESI
+ 0000024B  47			inc EDI
+ 0000024C  FE CC		dec ah
+ 0000024E  75 F2		jnz cmpLoop
+
+ 00000250  EB 02		jmp EndOfLoop
+
+ 00000252			ifNotEquel:
+ 00000252  B0 00		mov al, 0 ;not same!
+
+ 00000254			EndOfLoop:
+
+				ret
+ 00000254  5F		   *	    pop    edi
+ 00000255  5E		   *	    pop    esi
+ 00000256  C3		   *	    ret    00000h
+ 00000257			CmpStr ENDP
+
+				;----------------------------------------------------------------------------
+				;function explanation: this function checks every iteration if adress of esi (first location in string) is equel to adress
+				;of location of pos in string. if not - it will send to the next recurcive iteration esi++ and pos-- and will keep doing so until 
+				;adress esi == adress pos. if equel - it will put into dest adress the sub string that starts at adress esi and with the required len
+
+				;Registers used: parameters: esi-source, ecx-len of source, eax-pos, ebx-len, edi-dest
+				;al returns true/false if substring found or not. ecx also used to hold adress of pos
+				;all registers that holds adressed are 4 bytes, pos and len changes according to value (and this is why they are stored in a
+				;4 byte register) 
+ 00000257			SubString PROC USES ESI ECX EAX EBX EDI ;esi - source ecx - len of source eax- pos ebx - len edi - dest
+ 00000257  56		   *	    push   esi
+ 00000258  51		   *	    push   ecx
+ 00000259  50		   *	    push   eax
+ 0000025A  53		   *	    push   ebx
+ 0000025B  57		   *	    push   edi
+ 0000025C  55				push EBP
+ 0000025D  8B EC			mov EBP, ESP
+					;------------
+ 0000025F  8B 7D 2C			mov edi, [ebp + 44];dest adress  now holds source
+ 00000262  8B 4D 28			mov ecx, [ebp + 40] ;len of source
+ 00000265  8B 45 24			mov eax, [ebp + 36] ;pos
+ 00000268  8B 5D 20			mov ebx, [ebp + 32] ;len
+ 0000026B  8B 75 1C			mov esi, [ebp + 28] ;source adress  origina;: 44 was souece and 28 was dest now holds dest
+
+ 0000026E  8B 45 24			mov eax, [ebp + 36] ;eax = pos + len
+ 00000271  03 45 20			add eax, [ebp + 32]
+ 00000274  3B 45 28			cmp eax, [ebp + 40] ;maybe -1?
+ 00000277  7F 2B			JG OutOfBoundSubString
+ 00000279  51				push ecx
+ 0000027A  8B 45 24			mov eax, [ebp + 36] ;pos
+ 0000027D  8B CE			mov ecx, esi
+ 0000027F  03 C8			add ecx, eax ; now ecx holds adress of pos
+
+ 00000281  3B CE			cmp ecx, esi
+ 00000283  75 10			JNZ notEqual
+ 00000285  59				pop ecx 
+ 00000286  50				push eax;need to pop
+
+ 00000287				insertSubStringToDes:
+ 00000287  8A 06			mov al, BYTE PTR[EsI]
+ 00000289  88 07			mov BYTE PTR [edi], al
+ 0000028B  46				inc ESI
+ 0000028C  47				inc EDI
+ 0000028D  4B				dec EBX
+ 0000028E  75 F7			JNZ insertSubStringToDes
+ 00000290  58				pop eax
+ 00000291  B0 01			mov al, 1 ;return true
+ 00000293  EB 11			jmp EndOfFunction
+
+ 00000295				notEqual:
+ 00000295  59			    pop ecx
+ 00000296  46				inc ESI
+ 00000297  48				dec EAX
+
+ 00000298  57				push edi
+ 00000299  51				push ecx
+ 0000029A  50				push eax
+ 0000029B  53				push ebx
+ 0000029C  56				push esi
+ 0000029D  E8 FFFFFFB5			call SubString ;RECURSIVE CALL
+ 000002A2  EB 02			 jmp EndOfFunction
+
+ 000002A4				OutOfBoundSubString:
+ 000002A4  B0 00			mov al, 0 ; return false
+
+
+ 000002A6				EndOfFunction:
+
+					;-------------
+ 000002A6  8B E5			mov ESP, EBP
+ 000002A8  5D				pop EBP
+ 000002A9  5F		   *	    pop    edi
+ 000002AA  5B		   *	    pop    ebx
+ 000002AB  58		   *	    pop    eax
+ 000002AC  59		   *	    pop    ecx
+ 000002AD  5E		   *	    pop    esi
+ 000002AE  C2 0014			ret 20 ;make sure  is 8
+ 000002B1			SubString ENDP
+
+				;------------------------------------------------------------------------------------------------
+				;function explnation: this function looks for a combination of number sizes to see if there is a combination where the given
+				;sequence is addetive
+				;Registers used: esi holds adress of original string, edi adress of res string and edx size of original string
+				;al boolean that returns true/false if the string is addetive or not
+				;esi and edi both hokds adresses so they are 4 bytes, edx number of bytes changes according to size (1-4 bytes), but is send in a 4 
+				;byte register to accomidate every possible size
+ 000002B1			IsAddSeq PROC uses ESI EDI EDX
+ 000002B1  56		   *	    push   esi
+ 000002B2  57		   *	    push   edi
+ 000002B3  52		   *	    push   edx
+ 000002B4  55			push EBP
+ 000002B5  8B EC		mov EBP, ESP
+				;-------------
+ =-0000000E			tempAstring = -(2*N)
+ =-0000001C			tempBstring = -(4*N)
+ =-0000002A			tempCstring = -(6*N)
+ 000002B7  8B 75 1C		mov ESI, [ebp + 28] ;adress of original str
+ 000002BA  8B 55 18		mov EDX, [EBP + 24] ; len of original str
+ 000002BD  8B 7D 14		mov EDI, [EBP + 20] ; res adress
+
+ 000002C0  83 EC 2A		sub esp, N*6 ;temp for 3 sub strings - a,b,c
+ 000002C3  BA 00000000		mov edx, 0
+ 000002C8  8D 75 F2		lea esi, [ebp + tempAstring]
+ 000002CB  C7 06 00000000	mov DWORD PTR [esi], 0
+ 000002D1  8D 75 E4		lea esi, [ebp + tempBstring]
+ 000002D4  C7 06 00000000	mov DWORD PTR [esi], 0
+ 000002DA  8D 75 D6		lea esi, [ebp + tempCstring]
+ 000002DD  C7 06 00000000	mov DWORD PTR [esi], 0
+
+ 000002E3  8B 45 18		mov eax, [EBP + 24]
+ 000002E6  48			dec eax; to get exact size
+ 000002E7  BA 00000000		mov EDX, 0 ;for div
+ 000002EC  B9 00000002		mov ecx, 2
+ 000002F1  F7 F1		div ecx ;now eax holds l/2
+ 000002F3  40			inc eax
+				;to save l/2
+ 000002F4  BF 00000001		mov edi, 1 ;edx will be counter edx = i
+ 000002F9			outsideLoop:
+ 000002F9  50			push eax;to save val
+ 000002FA  8B 45 18		mov eax, [EBP + 24]
+ 000002FD  48			dec eax
+ 000002FE  2B C7		sub eax, edi ;l - i
+ 00000300  BA 00000000		mov EDX, 0 ;for div
+ 00000305  B9 00000002		mov ecx, 2
+ 0000030A  F7 F1		div ecx ;now eax holds l-i/2
+ 0000030C  40			inc eax
+ 0000030D  8B C8		mov ecx, eax
+ 0000030F  BB 00000001		mov ebx, 1 ;ebx counter = j
+ 00000314  58			pop eax
+ 00000315			innerLoop:
+ 00000315  8D 75 F2		lea esi, [ebp + tempAstring]
+ 00000318  51			push ecx
+ 00000319  57			push edi
+ 0000031A  8D 7D E4		lea edi, [ebp + tempBstring]
+ 0000031D  B1 0E		mov cl, N*2
+ 0000031F			emptyTempsLoop:
+ 0000031F  C6 06 00		mov BYTE PTR[ESI], 0
+ 00000322  C6 07 00		mov BYTE PTR[EDI], 0
+ 00000325  46			inc esi
+ 00000326  47			inc edi
+ 00000327  FE C9		dec cl
+ 00000329  75 F4		jnz emptyTempsLoop
+ 0000032B  5F			pop edi
+ 0000032C  59			pop ecx
+ 0000032D  C7 06 00000000	mov DWORD PTR [esi], 0
+ 00000333  8D 75 D6		lea esi, [ebp + tempCstring]
+ 00000336  C7 06 00000000	mov DWORD PTR [esi], 0
+ 0000033C  51			push ecx
+					;creating a substring
+ 0000033D  8D 75 F2			lea esi, [ebp + tempAstring]
+ 00000340  56				push esi;dest for a string
+ 00000341  8B 75 18			mov esi,  [EBP + 24]
+ 00000344  56				push esi; len of string source
+ 00000345  BE 00000000			mov esi, 0
+ 0000034A  56				push esi ;pos = 0
+ 0000034B  57				push edi ;len = i
+ 0000034C  8B 75 1C				mov ESI, [ebp + 28]
+ 0000034F  56				push esi; original string
+ 00000350  E8 FFFFFF02			call SubString ;now esp - N holds a sub string
+
+					;creating b substring
+ 00000355  8D 75 E4			lea esi, [ebp + tempBstring]; temp for b substring
+ 00000358  56				push esi
+ 00000359  8B 75 18			mov esi,  [EBP + 24]
+ 0000035C  56				push esi; len of string source
+ 0000035D  57				push edi ; pos = i
+ 0000035E  53				push ebx ; len = j
+ 0000035F  8B 75 1C			 mov ESI, [ebp + 28]
+ 00000362  56				push esi; original string
+ 00000363  E8 FFFFFEEF			call SubString
+
+ 00000368  57				push edi
+					;creatung c substring
+ 00000369  8D 75 D6			lea esi, [ebp + tempCstring]; temp for c substring
+ 0000036C  56				push esi
+ 0000036D  8B 75 18			mov esi,  [EBP + 24]
+ 00000370  56				push esi;size of original string
+ 00000371  8B F3			mov esi, ebx ;esi = J
+ 00000373  03 F7			add esi, edi ;esi = j + i
+ 00000375  56				push esi ;pos = i + j
+ 00000376  8B 7D 18			mov edi, [EBP + 24]
+ 00000379  2B FE			sub edi, esi ;size of original - (i+j) = len
+ 0000037B  57				push edi ;len
+ 0000037C  8B 75 1C			  mov ESI, [ebp + 28]
+ 0000037F  56				push esi; original string
+ 00000380  E8 FFFFFED2			call SubString
+ 00000385  5F				pop edi
+
+ 00000386  50			push eax; to save value	
+ 00000387  53			push ebx; to save value
+ 00000388  57			push edi; to save value
+				;call check adition
+ 00000389  8D 75 F2			lea esi, [ebp + tempAstring];a subtring
+ 0000038C  8D 7D E4			lea edi, [ebp + tempBstring]; b string
+ 0000038F  8D 45 D6			lea eax, [ebp + tempCstring];c string
+ 00000392  56				push esi
+ 00000393  57			push edi
+ 00000394  50			push eax
+ 00000395  8B 75 1C		mov ESI, [EBP + 28]
+ 00000398  56			push ESI ; adress of original str
+ 00000399  8B 75 18		mov ESI, [EBP + 24] 
+ 0000039C  56			push ESI ;len of original str
+ 0000039D  BE 00000007 R	mov ESI, OFFSET res
+				;------------make res empty
+ 000003A2  B1 0F		mov cl, N*2+1 
+ 000003A4			makeEmptyLoop:
+ 000003A4  C6 06 00		mov BYTE PTR[ESI], 0
+ 000003A7  46			inc esi
+ 000003A8  FE C9		dec cl
+ 000003AA  75 F8		jnz makeEmptyLoop
+				;-----------------------
+ 000003AC  BE 00000007 R	mov ESI, OFFSET res
+
+ 000003B1  56			push esi ;adress of res
+ 000003B2  E8 00000082		call ChkAddition
+ 000003B7  5F			pop edi
+ 000003B8  5B			pop ebx
+
+ 000003B9  3C 01		cmp al, 1
+ 000003BB  75 50		JNZ returendZero
+ 000003BD  BE 00000007 R	mov esi, OFFSET res
+ 000003C2  8D 7D D6		lea edi, [EBP + tempCstring]
+
+ 000003C5  B4 07		mov ah, N
+ 000003C7			loopMakeEmpty:
+ 000003C7  C6 07 00		mov BYTE PTR[edi], 0
+ 000003CA  47			inc edi
+ 000003CB  FE CC		dec ah
+ 000003CD  75 F8		jnz loopMakeEmpty
+
+ 000003CF  8D 7D D6		lea edi, [EBP + tempCstring]
+ 000003D2  C6 07 20		mov BYTE PTR[EdI], " "
+ 000003D5  E8 FFFFFDF9		call PushFront
+ 000003DA  BE 00000007 R	mov esi, OFFSET RES
+ 000003DF  8D 7D E4		lea edi, [EBP + tempBstring] ;adress of temp b
+ 000003E2  E8 FFFFFDEC		call PushFront ;push front of b to res 
+
+ 000003E7  BE 00000007 R	mov esi, OFFSET res
+ 000003EC  8D 7D D6		lea edi, [EBP + tempCstring]
+ 000003EF  C6 07 20		mov BYTE PTR[EDI], " "
+ 000003F2  47			inc edi
+ 000003F3  C6 07 00		mov BYTE PTR[EDI], 0
+ 000003F6  8D 7D D6		lea edi, [EBP + tempCstring]
+ 000003F9  E8 FFFFFDD5		call PushFront
+ 000003FE  BE 00000007 R	mov esi, OFFSET RES
+ 00000403  8D 7D F2		lea edi, [EBP + tempAstring] ;adress of temp b
+ 00000406  E8 FFFFFDC8		call PushFront
+ 0000040B  EB 20		jmp endOfFuncSuccesful
+ 0000040D			returendZero:
+ 0000040D  58			pop eax
+ 0000040E  59			pop ecx
+ 0000040F  43			inc ebx
+ 00000410  3B D9		cmp ebx, ecx
+ 00000412  0F 85 FFFFFEFD	jnz innerLoop
+
+				;pop eax ;ecx holds value
+ 00000418  47			inc edi
+ 00000419  3B F8		cmp edi, eax
+ 0000041B  0F 85 FFFFFED8	jnz OutsideLoop
+
+ 00000421  BE 00000007 R	mov esi, OFFSET res ;res.clear()
+ 00000426  BA 00000000		mov edx, 0
+ 0000042B  89 16		mov DWORD PTR [esi], edx
+
+ 0000042D			endOfFuncSuccesful:
+
+ 0000042D  83 C4 2A		add esp, N*6
+				;---------------
+ 00000430  8B E5		mov ESP, EBP
+ 00000432  5D			pop EBP
+ 00000433  5A		   *	    pop    edx
+ 00000434  5F		   *	    pop    edi
+ 00000435  5E		   *	    pop    esi
+ 00000436  C2 000C		ret 12 
+ 00000439			IsAddSeq ENDP 
+				;-------------------------------------------------------------------------------------------------------------
+				;function explanation: this function checks if a string is addetive or not
+				;registers used: parameters: esi - adress of original str, eax - size of original str, edi - res adress, edx - a string
+				;ebx - b string, ecx - c string. esi and edi also used to send parameters to inner functions like get size for exmple.
+				;in this func we aldo allocated memory for local var on the stack (two strings with len N - one for sun and one for temp)
+				;all parameters were send in full registers and so they take 4 bytes (adresses for exmple). size of string can take less bytes,
+				;depending on size but is send in a 4 byte register becouse size is unknown 
+ 00000439			ChkAddition PROC 
+ =-00000007			sum1 = -N
+ =-0000000E			temp1 = -(2*N)
+ 00000439  55			push EBP
+ 0000043A  8B EC		mov EBP, ESP
+				;----------------------------
+ 0000043C  8B 55 1C		mov EDX, [EBP + 28];a string
+ 0000043F  8B 5D 18		mov EBX, [EBP + 24];b string
+ 00000442  8B 4D 14		mov ECX, [ebp + 20];c string
+ 00000445  8B 75 10		mov ESI, [EBP + 16] ;adress original string
+ 00000448  8B 45 0C		mov EAX, [EBP + 12] ;size of original string
+ 0000044B  8B 7D 08		mov EDI, [EBP + 8] ;result
+
+ 0000044E  83 EC 0E		sub ESP, N * 2 ; [ebp - n] is res adress, [ebp - n*2] is temp adress used later in function
+ 00000451  B4 07		mov ah, N
+
+ 00000453  8D 75 F2		lea esi, [EBP + TEMP1]
+ 00000456  8D 7D F9		lea edi, [EBP + SUM1]
+ 00000459			loopMakeEmpty:
+ 00000459  C6 06 00		mov BYTE PTR [ESI], 0
+ 0000045C  C6 07 00		mov BYTE PTR [EDI], 0
+ 0000045F  46			inc esi 
+ 00000460  47			inc edi
+ 00000461  FE CC		dec ah
+ 00000463  75 F4		jnz loopMakeEmpty
+
+
+
+ 00000465  8B 75 1C		mov ESI, [EBP + 28] ; check if a is valid
+ 00000468  E8 FFFFFDAC		call GetStringSize
+ 0000046D  0F B6 D4		movzx edx, ah
+ 00000470  52			push edx ;len of a
+ 00000471  56			push ESI; adress of a
+ 00000472  E8 FFFFFBEA		call IsValid
+ 00000477  3C 00		cmp al, 0
+ 00000479  0F 84 00000147	JZ EndOfFunction 
+
+ 0000047F  8B 75 18		mov ESI, [EBP + 24] ; check if b is valid
+ 00000482  E8 FFFFFD92		call GetStringSize
+ 00000487  0F B6 D4		movzx edx, ah
+ 0000048A  52			push edx ;len of a
+ 0000048B  56			push ESI; adress of a
+ 0000048C  E8 FFFFFBD0		call IsValid
+ 00000491  3C 00		cmp al, 0
+ 00000493  0F 84 0000012D	JZ EndOfFunction 
+
+ 00000499  8B 45 0C		mov EAX, [EBP + 12] ;size of original string
+
+ 0000049C  B4 07		mov ah, N
+ 0000049E  8D 75 F2		lea ESI, [ebp + temp1] ;sum that is allocated in stack adress
+ 000004A1  8D 7D F9		lea EDI, [ebp + sum1]
+				;need to make it all zero so itll be empty/try to check without the add esi N
+				;--------------------------------------------------------------------------------------------------
+				;params for addString
+ 000004A4  8D 75 F9		lea ESI, [EBP + SUM1]
+ 000004A7  56			push ESI; adress of sum 
+				;sending parameter list to addd string
+ 000004A8  8B 55 1C		mov EDX, [EBP + 28]
+ 000004AB  52			push EDX ;adress string a
+ 000004AC  8B 75 1C		mov ESI, [EBP + 28]
+ 000004AF  E8 FFFFFD65		call GetStringSize
+ 000004B4  0F B6 D4		movzx EDX, ah
+ 000004B7  52			push EDX ;size string a
+ 000004B8  8B 75 18		mov ESI, [EBP + 24]
+ 000004BB  56			push ESI ; adress of b
+ 000004BC  E8 FFFFFD58		call GetStringSize
+ 000004C1  0F B6 F4		movzx ESI, ah
+ 000004C4  56			push ESI ; size of b
+ 000004C5  E8 FFFFFBE1		call AddString
+
+ 000004CA  8B 7D 14		mov edi, [EBP + 20];c string
+				;esi holds sum 
+
+ 000004CD  8D 75 F9		lea esi, [EBP + SUM1];HHOLDS SUM
+
+ 000004D0  E8 FFFFFD55		call CmpStr
+
+ 000004D5  3C 01		cmp al, 1 ;if c == sum 
+ 000004D7  75 20		JNZ notEqual
+ 000004D9  8B 75 08		mov esi, [ebp + 8] ;adress of res
+ 000004DC  8D 7D F9		LEA edi, [EBP + SUM1] ;adress of sum
+ 000004DF  E8 FFFFFCC1		call PushBack 
+ 000004E4  8D 7D F2		lea edi, [EBP + temp1]
+ 000004E7  8B 75 08		mov esi, [ebp + 8] ;adress of res
+ 000004EA  C6 07 20		mov BYTE PTR [edi], " "
+ 000004ED  E8 FFFFFCB3		call PushBack
+
+ 000004F2  B0 01		mov al, 1 
+ 000004F4  E9 000000CD		jmp EndOfFunction;:;need to make sure al keeps res value 
+ 000004F9			notEqual: 
+ 000004F9  8B 75 14		mov ESI, [EBP + 20] ;adress of c
+ 000004FC  E8 FFFFFD18		call GetStringSize
+ 00000501  8A C4		mov al, ah ;not al holds size of string c
+ 00000503  8D 75 F9		LEA ESI, [EBP + SUM1]
+ 00000506  E8 FFFFFD0E		call GetStringSize ;now ah holds size of sum
+ 0000050B  3A C4		cmp al, ah
+ 0000050D  0F 8E 000000AA	JLE returnFalse
+
+				;params for subString
+ 00000513  8D 75 F2		LEA esi, [EBP + TEMP1];adress of temp to save res of subStr function
+ 00000516  BA 00000000		mov edx, 0
+ 0000051B  89 16		mov [esi], edx ;make sure is empty
+ 0000051D  56			push esi
+ 0000051E  0F B6 F0		movzx esi, al
+ 00000521  56			push ESI ; sends size of c
+ 00000522  BE 00000000		mov esi, 0
+ 00000527  56			push esi ; sends pos = 0
+ 00000528  0F B6 F4		movzx esi, ah 
+ 0000052B  56			push esi; size of sum sending as len
+ 0000052C  8B 75 14		mov ESI, [ebp + 20] ; c adress
+ 0000052F  56			push esi;send adress of c
+
+ 00000530  E8 FFFFFD22		call SubString
+
+ 00000535  8D 75 F9		lea ESI, [ebp + SUM1] ;now ESI holds sum
+ 00000538  8D 7D F2		lea EDI, [EBP + temp1];now edi holds adress of temp that returned from substr
+
+ 0000053B  E8 FFFFFCEA		call CmpStr 
+
+ 00000540  3C 00		cmp al, 0 ;sum != c.substr(0, sum.size()
+ 00000542  74 79		JZ returnFalse
+
+ 00000544  8D 7D F2		lea EDI, [EBP + temp1]
+ 00000547  B4 07		mov ah, N
+ 00000549			loopMakeEmpty2:
+ 00000549  C6 07 00		mov BYTE PTR [EDI], 0
+ 0000054C  47			inc edi
+ 0000054D  FE CC		dec ah
+ 0000054F  75 F8		jnz loopMakeEmpty2
+
+ 00000551  8B 75 08		mov esi, [ebp + 8] ;adress of res
+ 00000554  8D 7D F9		lea edi, [EBP + SUM1] ;adress of sum
+ 00000557  E8 FFFFFC49		call PushBack 
+ 0000055C  8D 7D F2		lea edi, [EBP + temp1]
+ 0000055F  8B 75 08		mov esi, [ebp + 8] ;adress of res
+ 00000562  C6 07 20		mov BYTE PTR [edi], " "
+ 00000565  E8 FFFFFC3B		call PushBack
+
+				;now we need to get c.substr(sum.size())
+ 0000056A  8D 75 F2		lea esi, [ebp + temp1] ;adress of temp to save res of subStr function
+ 0000056D  BA 00000000		mov edx, 0
+ 00000572  89 16		mov [esi], edx ;make sure is empty
+ 00000574  56			push esi ; sends temp adress to get substring res in temp
+ 00000575  8B 75 14		mov ESI, [EBP + 20]
+ 00000578  E8 FFFFFC9C		call GetStringSize
+ 0000057D  8A C4		mov al, ah;size of c in al
+ 0000057F  0F B6 F4		movzx esi, ah
+ 00000582  56			push ESI ; sends size of c
+ 00000583  8D 75 F9		lea esi, [EBP + SUM1]
+ 00000586  E8 FFFFFC8E		call GetStringSize
+ 0000058B  0F B6 F4		movzx esi, ah ; ah = size of sum
+ 0000058E  56			push esi ; sends pos = size of sum
+ 0000058F  0F B6 D4		movzx edx, ah ; now edx holds pos
+ 00000592  0F B6 F0		movzx esi, al;size of c
+ 00000595  2B F2		sub esi, edx ;size of c - pos
+ 00000597  56			push esi; sends len (pos until end o c)
+ 00000598  8B 75 14		mov ESI, [ebp + 20] ; c adress
+ 0000059B  56			push esi;send adress of c
+ 0000059C  E8 FFFFFCB6		call SubString
+
+
+				;now params for recursive call
+ 000005A1  8B 7D 18		mov edi, [EBP + 24]
+ 000005A4  8D 75 F9		lea esi, [ebp + sum1]
+ 000005A7  8D 55 F2		lea edx, [ebp + temp1]
+ 000005AA  57			push edi ;send b string as a string
+ 000005AB  56			push esi ;sends sum as b string
+ 000005AC  52			push edx;sends ,c.substr(sum.size()) as c string
+ 000005AD  8B 75 10		mov esi, [EBP + 16]
+ 000005B0  56			push esi;address of original string
+ 000005B1  8B 75 0C		mov esi, [EBP + 12]
+ 000005B4  56			push esi; size of original str
+ 000005B5  BE 00000007 R	mov esi, OFFSET res
+ 000005BA  56			push esi
+ 000005BB  EB 04		jmp recursiceCall
+
+ 000005BD			returnFalse:
+ 000005BD  B0 00		mov al, 0
+ 000005BF  EB 05		jmp EndOfFunction
+
+ 000005C1			recursiceCall:
+ 000005C1  E8 FFFFFE73		call ChkAddition
+
+ 000005C6			EndOfFunction:
+ 000005C6  83 C4 0E		add esp, N*2
+				;----------------------
+ 000005C9  8B E5			mov ESP, EBP
+ 000005CB  5D				pop EBP
+ 000005CC  C2 0018			ret 24 
+ 000005CF			ChkAddition ENDP 
+
+
+						END main
+						
+
+	
+Microsoft (R) Macro Assembler Version 14.28.29915.0	    07/08/21 13:14:58
+asm3_Q3 .asm						     Symbols 2 - 1
+
+
+
+
+Structures and Unions:
+
+                N a m e                  Size
+                                         Offset      Type
+
+CONSOLE_CURSOR_INFO  . . . . . .	 00000008
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  bVisible . . . . . . . . . . .	 00000004	 DWord
+CONSOLE_SCREEN_BUFFER_INFO . . .	 00000016
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCursorPosition . . . . . . .	 00000004	 DWord
+  wAttributes  . . . . . . . . .	 00000008	 Word
+  srWindow . . . . . . . . . . .	 0000000A	 QWord
+  dwMaximumWindowSize  . . . . .	 00000012	 DWord
+COORD  . . . . . . . . . . . . .	 00000004
+  X  . . . . . . . . . . . . . .	 00000000	 Word
+  Y  . . . . . . . . . . . . . .	 00000002	 Word
+FILETIME . . . . . . . . . . . .	 00000008
+  loDateTime . . . . . . . . . .	 00000000	 DWord
+  hiDateTime . . . . . . . . . .	 00000004	 DWord
+FOCUS_EVENT_RECORD . . . . . . .	 00000004
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+FPU_ENVIRON  . . . . . . . . . .	 0000001C
+  controlWord  . . . . . . . . .	 00000000	 Word
+  statusWord . . . . . . . . . .	 00000004	 Word
+  tagWord  . . . . . . . . . . .	 00000008	 Word
+  instrPointerOffset . . . . . .	 0000000C	 DWord
+  instrPointerSelector . . . . .	 00000010	 DWord
+  operandPointerOffset . . . . .	 00000014	 DWord
+  operandPointerSelector . . . .	 00000018	 Word
+INPUT_RECORD . . . . . . . . . .	 00000014
+  EventType  . . . . . . . . . .	 00000000	 Word
+  Event  . . . . . . . . . . . .	 00000004	 XmmWord
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+KEY_EVENT_RECORD . . . . . . . .	 00000010
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+MENU_EVENT_RECORD  . . . . . . .	 00000004
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+MOUSE_EVENT_RECORD . . . . . . .	 00000010
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+SMALL_RECT . . . . . . . . . . .	 00000008
+  Left . . . . . . . . . . . . .	 00000000	 Word
+  Top  . . . . . . . . . . . . .	 00000002	 Word
+  Right  . . . . . . . . . . . .	 00000004	 Word
+  Bottom . . . . . . . . . . . .	 00000006	 Word
+SYSTEMTIME . . . . . . . . . . .	 00000010
+  wYear  . . . . . . . . . . . .	 00000000	 Word
+  wMonth . . . . . . . . . . . .	 00000002	 Word
+  wDayOfWeek . . . . . . . . . .	 00000004	 Word
+  wDay . . . . . . . . . . . . .	 00000006	 Word
+  wHour  . . . . . . . . . . . .	 00000008	 Word
+  wMinute  . . . . . . . . . . .	 0000000A	 Word
+  wSecond  . . . . . . . . . . .	 0000000C	 Word
+  wMilliseconds  . . . . . . . .	 0000000E	 Word
+WINDOW_BUFFER_SIZE_RECORD  . . .	 00000004
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000031 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000005CF Para	  Public  'CODE'	
+
+
+Procedures, parameters, and locals:
+
+                N a m e                 Type     Value    Attr
+
+AddString  . . . . . . . . . . .	P Near	 000000AB _TEXT	Length= 000000DD Public STDCALL
+  addingStringLoop . . . . . . .	L Near	 000000E1 _TEXT	
+  lessThenZero . . . . . . . . .	L Near	 0000014E _TEXT	
+  endOfFunction  . . . . . . . .	L Near	 00000153 _TEXT	
+  isZero . . . . . . . . . . . .	L Near	 0000016C _TEXT	
+ChkAddition  . . . . . . . . . .	P Near	 00000439 _TEXT	Length= 00000196 Public STDCALL
+  loopMakeEmpty  . . . . . . . .	L Near	 00000459 _TEXT	
+  notEqual . . . . . . . . . . .	L Near	 000004F9 _TEXT	
+  loopMakeEmpty2 . . . . . . . .	L Near	 00000549 _TEXT	
+  returnFalse  . . . . . . . . .	L Near	 000005BD _TEXT	
+  recursiceCall  . . . . . . . .	L Near	 000005C1 _TEXT	
+  EndOfFunction  . . . . . . . .	L Near	 000005C6 _TEXT	
+CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CmpStr . . . . . . . . . . . . .	P Near	 0000022A _TEXT	Length= 0000002D Public STDCALL
+  cmpLoop  . . . . . . . . . . .	L Near	 00000242 _TEXT	
+  ifNotEquel . . . . . . . . . .	L Near	 00000252 _TEXT	
+  EndOfLoop  . . . . . . . . . .	L Near	 00000254 _TEXT	
+CreateFileA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateOutputFile . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Crlf . . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Delay  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpMem  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpRegs . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToDosDateTime  . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToSystemTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FlushConsoleInputBuffer  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FormatMessageA . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandLineA  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandTail . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCP . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleScreenBufferInfo . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetDateTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetFileTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetKeyState  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLastError . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMaxXY . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMseconds  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetNumberOfConsoleInputEvents  .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetProcessHeap . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetStdHandle . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetStringSize  . . . . . . . . .	P Near	 00000219 _TEXT	Length= 00000011 Public STDCALL
+  findsize . . . . . . . . . . .	L Near	 0000021C _TEXT	
+  ending . . . . . . . . . . . .	L Near	 00000228 _TEXT	
+GetSystemTime  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTickCount . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Gotoxy . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapAlloc  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapCreate . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapDestroy  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapFree . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapSize . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+IsAddSeq . . . . . . . . . . . .	P Near	 000002B1 _TEXT	Length= 00000188 Public STDCALL
+  outsideLoop  . . . . . . . . .	L Near	 000002F9 _TEXT	
+  innerLoop  . . . . . . . . . .	L Near	 00000315 _TEXT	
+  emptyTempsLoop . . . . . . . .	L Near	 0000031F _TEXT	
+  makeEmptyLoop  . . . . . . . .	L Near	 000003A4 _TEXT	
+  loopMakeEmpty  . . . . . . . .	L Near	 000003C7 _TEXT	
+  returendZero . . . . . . . . .	L Near	 0000040D _TEXT	
+  endOfFuncSuccesful . . . . . .	L Near	 0000042D _TEXT	
+IsDigit  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+IsValid  . . . . . . . . . . . .	P Near	 00000061 _TEXT	Length= 00000023 Public STDCALL
+  notGreater . . . . . . . . . .	L Near	 0000007A _TEXT	
+  notEquel . . . . . . . . . . .	L Near	 0000007A _TEXT	
+  endOfFunction  . . . . . . . .	L Near	 0000007C _TEXT	
+LocalFree  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MessageBoxA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBoxAsk  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBox . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+OpenInputFile  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseDecimal32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseInteger32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+PeekConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+PushBack . . . . . . . . . . . .	P Near	 000001A5 _TEXT	Length= 0000002E Public STDCALL
+  skipThis . . . . . . . . . . .	L Near	 000001B7 _TEXT	
+  pushBackLoop . . . . . . . . .	L Near	 000001C3 _TEXT	
+  emptyBstring . . . . . . . . .	L Near	 000001D0 _TEXT	
+PushFront  . . . . . . . . . . .	P Near	 000001D3 _TEXT	Length= 00000046 Public STDCALL
+  pushFrontLoop  . . . . . . . .	L Near	 000001F3 _TEXT	
+  transferToAString  . . . . . .	L Near	 00000209 _TEXT	
+  emptyBstring . . . . . . . . .	L Near	 00000216 _TEXT	
+Random32 . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+RandomRange  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Randomize  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadChar . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleA . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadDec  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFile . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFloat  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFromFile . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadHex  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadInt  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKeyFlush . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKey  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadString . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorPosition . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleScreenBufferSize . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTextAttribute  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTitleA . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleWindowInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetFilePointer . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ShowFPUStack . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Sleep  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+StrLength  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_compare  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_copy . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_length . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_trim . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_ucase  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SubString  . . . . . . . . . . .	P Near	 00000257 _TEXT	Length= 0000005A Public STDCALL
+  insertSubStringToDes . . . . .	L Near	 00000287 _TEXT	
+  notEqual . . . . . . . . . . .	L Near	 00000295 _TEXT	
+  OutOfBoundSubString  . . . . .	L Near	 000002A4 _TEXT	
+  EndOfFunction  . . . . . . . .	L Near	 000002A6 _TEXT	
+SystemTimeToFileTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Val  . . . . . . . . . . . . . .	P Near	 00000084 _TEXT	Length= 00000027 Public STDCALL
+  posInRnge  . . . . . . . . . .	L Near	 0000009C _TEXT	
+  endOfFunction  . . . . . . . .	L Near	 000000A2 _TEXT	
+WaitMsg  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBinB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBin . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteChar  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleA  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputAttribute  . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputCharacterA . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteDec . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFloat . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHexB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHex . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteInt . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrameName  . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000061 Public STDCALL
+  ReturnedFalse  . . . . . . . .	L Near	 00000050 _TEXT	
+  endMain  . . . . . . . . . . .	L Near	 0000005A _TEXT	
+printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+reverse_string . . . . . . . . .	P Near	 00000188 _TEXT	Length= 0000001D Public STDCALL
+  push_loop  . . . . . . . . . .	L Near	 0000018E _TEXT	
+  pop_loop . . . . . . . . . . .	L Near	 00000199 _TEXT	
+scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000003h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+ALT_MASK . . . . . . . . . . . .	Number	 00000003h   
+CAPSLOCK_ON  . . . . . . . . . .	Number	 00000080h   
+CREATE_ALWAYS  . . . . . . . . .	Number	 00000002h   
+CREATE_NEW . . . . . . . . . . .	Number	 00000001h   
+CTRL_MASK  . . . . . . . . . . .	Number	 0000000Ch   
+CreateFile . . . . . . . . . . .	Text   	 CreateFileA
+DO_NOT_SHARE . . . . . . . . . .	Number	 00000000h   
+ENABLE_ECHO_INPUT  . . . . . . .	Number	 00000004h   
+ENABLE_LINE_INPUT  . . . . . . .	Number	 00000002h   
+ENABLE_MOUSE_INPUT . . . . . . .	Number	 00000010h   
+ENABLE_PROCESSED_INPUT . . . . .	Number	 00000001h   
+ENABLE_PROCESSED_OUTPUT  . . . .	Number	 00000001h   
+ENABLE_WINDOW_INPUT  . . . . . .	Number	 00000008h   
+ENABLE_WRAP_AT_EOL_OUTPUT  . . .	Number	 00000002h   
+ENHANCED_KEY . . . . . . . . . .	Number	 00000100h   
+FALSE  . . . . . . . . . . . . .	Number	 00000000h   
+FILE_APPEND_DATA . . . . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_ARCHIVE . . . . .	Number	 00000020h   
+FILE_ATTRIBUTE_COMPRESSED  . . .	Number	 00000800h   
+FILE_ATTRIBUTE_DEVICE  . . . . .	Number	 00000040h   
+FILE_ATTRIBUTE_DIRECTORY . . . .	Number	 00000010h   
+FILE_ATTRIBUTE_ENCRYPTED . . . .	Number	 00004000h   
+FILE_ATTRIBUTE_HIDDEN  . . . . .	Number	 00000002h   
+FILE_ATTRIBUTE_NORMAL  . . . . .	Number	 00000080h   
+FILE_ATTRIBUTE_NOT_CONTENT_INDEXED .	Number	 00002000h   
+FILE_ATTRIBUTE_OFFLINE . . . . .	Number	 00001000h   
+FILE_ATTRIBUTE_READONLY  . . . .	Number	 00000001h   
+FILE_ATTRIBUTE_REPARSE_POINT . .	Number	 00000400h   
+FILE_ATTRIBUTE_SPARSE_FILE . . .	Number	 00000200h   
+FILE_ATTRIBUTE_SYSTEM  . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_TEMPORARY . . . .	Number	 00000100h   
+FILE_BEGIN . . . . . . . . . . .	Number	 00000000h   
+FILE_CURRENT . . . . . . . . . .	Number	 00000001h   
+FILE_DELETE_CHILD  . . . . . . .	Number	 00000040h   
+FILE_END . . . . . . . . . . . .	Number	 00000002h   
+FILE_READ_DATA . . . . . . . . .	Number	 00000001h   
+FILE_SHARE_DELETE  . . . . . . .	Number	 00000004h   
+FILE_SHARE_READ  . . . . . . . .	Number	 00000001h   
+FILE_SHARE_WRITE . . . . . . . .	Number	 00000002h   
+FILE_WRITE_DATA  . . . . . . . .	Number	 00000002h   
+FOCUS_EVENT  . . . . . . . . . .	Number	 00000010h   
+FORMAT_MESSAGE_ALLOCATE_BUFFER .	Number	 00000100h   
+FORMAT_MESSAGE_FROM_SYSTEM . . .	Number	 00001000h   
+FormatMessage  . . . . . . . . .	Text   	 FormatMessageA
+GENERIC_ALL  . . . . . . . . . .	Number	 10000000h   
+GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h   
+GENERIC_READ . . . . . . . . . .	Number	 -80000000h   
+GENERIC_WRITE  . . . . . . . . .	Number	 40000000h   
+GetCommandLine . . . . . . . . .	Text   	 GetCommandLineA
+HANDLE . . . . . . . . . . . . .	Text   	 DWORD
+HEAP_GENERATE_EXCEPTIONS . . . .	Number	 00000004h   
+HEAP_GROWABLE  . . . . . . . . .	Number	 00000002h   
+HEAP_NO_SERIALIZE  . . . . . . .	Number	 00000001h   
+HEAP_REALLOC_IN_PLACE_ONLY . . .	Number	 00000010h   
+HEAP_ZERO_MEMORY . . . . . . . .	Number	 00000008h   
+IDABORT  . . . . . . . . . . . .	Number	 00000003h   
+IDCANCEL . . . . . . . . . . . .	Number	 00000002h   
+IDCLOSE  . . . . . . . . . . . .	Number	 00000008h   
+IDCONTINUE . . . . . . . . . . .	Number	 0000000Bh   
+IDHELP . . . . . . . . . . . . .	Number	 00000009h   
+IDIGNORE . . . . . . . . . . . .	Number	 00000005h   
+IDNO . . . . . . . . . . . . . .	Number	 00000007h   
+IDOK . . . . . . . . . . . . . .	Number	 00000001h   
+IDRETRY  . . . . . . . . . . . .	Number	 00000004h   
+IDTIMEOUT  . . . . . . . . . . .	Number	 00007D00h   
+IDTRYAGAIN . . . . . . . . . . .	Number	 0000000Ah   
+IDYES  . . . . . . . . . . . . .	Number	 00000006h   
+INVALID_HANDLE_VALUE . . . . . .	Number	 -00000001h   
+Input  . . . . . . . . . . . . .	Byte	 00000016 _DATA	
+KBDOWN_FLAG  . . . . . . . . . .	Number	 00000001h   
+KEY_EVENT  . . . . . . . . . . .	Number	 00000001h   
+KEY_MASKS  . . . . . . . . . . .	Number	 0000001Fh   
+LEFT_ALT_PRESSED . . . . . . . .	Number	 00000002h   
+LEFT_CTRL_PRESSED  . . . . . . .	Number	 00000008h   
+MB_ABORTRETRYIGNORE  . . . . . .	Number	 00000002h   
+MB_APPLMODAL . . . . . . . . . .	Number	 00000000h   
+MB_CANCELTRYCONTINUE . . . . . .	Number	 00000006h   
+MB_DEFBUTTON1  . . . . . . . . .	Number	 00000000h   
+MB_DEFBUTTON2  . . . . . . . . .	Number	 00000100h   
+MB_DEFBUTTON3  . . . . . . . . .	Number	 00000200h   
+MB_DEFBUTTON4  . . . . . . . . .	Number	 00000300h   
+MB_HELP  . . . . . . . . . . . .	Number	 00004000h   
+MB_ICONASTERISK  . . . . . . . .	Number	 00000040h   
+MB_ICONERROR . . . . . . . . . .	Number	 00000010h   
+MB_ICONEXCLAMATION . . . . . . .	Number	 00000030h   
+MB_ICONHAND  . . . . . . . . . .	Number	 00000010h   
+MB_ICONINFORMATION . . . . . . .	Number	 00000040h   
+MB_ICONQUESTION  . . . . . . . .	Number	 00000020h   
+MB_ICONSTOP  . . . . . . . . . .	Number	 00000010h   
+MB_ICONWARNING . . . . . . . . .	Number	 00000030h   
+MB_OKCANCEL  . . . . . . . . . .	Number	 00000001h   
+MB_OK  . . . . . . . . . . . . .	Number	 00000000h   
+MB_RETRYCANCEL . . . . . . . . .	Number	 00000005h   
+MB_SYSTEMMODAL . . . . . . . . .	Number	 00001000h   
+MB_TASKMODAL . . . . . . . . . .	Number	 00002000h   
+MB_USERICON  . . . . . . . . . .	Number	 00000080h   
+MB_YESNOCANCEL . . . . . . . . .	Number	 00000003h   
+MB_YESNO . . . . . . . . . . . .	Number	 00000004h   
+MENU_EVENT . . . . . . . . . . .	Number	 00000008h   
+MOUSE_EVENT  . . . . . . . . . .	Number	 00000002h   
+MessageBox . . . . . . . . . . .	Text   	 MessageBoxA
+NULL . . . . . . . . . . . . . .	Number	 00000000h   
+NUMLOCK_ON . . . . . . . . . . .	Number	 00000020h   
+N  . . . . . . . . . . . . . . .	Number	 00000007h   
+OPEN_ALWAYS  . . . . . . . . . .	Number	 00000004h   
+OPEN_EXISTING  . . . . . . . . .	Number	 00000003h   
+Output . . . . . . . . . . . . .	Byte	 00000022 _DATA	
+PeekConsoleInput . . . . . . . .	Text   	 PeekConsoleInputA
+RIGHT_ALT_PRESSED  . . . . . . .	Number	 00000001h   
+RIGHT_CTRL_PRESSED . . . . . . .	Number	 00000004h   
+ReadConsoleInput . . . . . . . .	Text   	 ReadConsoleInputA
+ReadConsole  . . . . . . . . . .	Text   	 ReadConsoleA
+SCROLLLOCK_ON  . . . . . . . . .	Number	 00000040h   
+SHIFT_MASK . . . . . . . . . . .	Number	 00000010h   
+SHIFT_PRESSED  . . . . . . . . .	Number	 00000010h   
+STD_ERROR_HANDLE . . . . . . . .	Number	 -0000000Ch   
+STD_INPUT_HANDLE . . . . . . . .	Number	 -0000000Ah   
+STD_OUTPUT_HANDLE  . . . . . . .	Number	 -0000000Bh   
+SetConsoleTitle  . . . . . . . .	Text   	 SetConsoleTitleA
+TAB  . . . . . . . . . . . . . .	Number	 00000009h   
+TRUE . . . . . . . . . . . . . .	Number	 00000001h   
+TRUNCATE_EXISTING  . . . . . . .	Number	 00000005h   
+VK_11  . . . . . . . . . . . . .	Number	 000000BDh   
+VK_12  . . . . . . . . . . . . .	Number	 000000BBh   
+VK_ADD . . . . . . . . . . . . .	Number	 0000006Bh   
+VK_BACK  . . . . . . . . . . . .	Number	 00000008h   
+VK_CANCEL  . . . . . . . . . . .	Number	 00000003h   
+VK_CAPITAL . . . . . . . . . . .	Number	 00000014h   
+VK_CLEAR . . . . . . . . . . . .	Number	 0000000Ch   
+VK_CONTROL . . . . . . . . . . .	Number	 00000011h   
+VK_DECIMAL . . . . . . . . . . .	Number	 0000006Eh   
+VK_DELETE  . . . . . . . . . . .	Number	 0000002Eh   
+VK_DIVIDE  . . . . . . . . . . .	Number	 0000006Fh   
+VK_DOWN  . . . . . . . . . . . .	Number	 00000028h   
+VK_END . . . . . . . . . . . . .	Number	 00000023h   
+VK_ESCAPE  . . . . . . . . . . .	Number	 0000001Bh   
+VK_EXECUTE . . . . . . . . . . .	Number	 0000002Bh   
+VK_F10 . . . . . . . . . . . . .	Number	 00000079h   
+VK_F11 . . . . . . . . . . . . .	Number	 0000007Ah   
+VK_F12 . . . . . . . . . . . . .	Number	 0000007Bh   
+VK_F13 . . . . . . . . . . . . .	Number	 0000007Ch   
+VK_F14 . . . . . . . . . . . . .	Number	 0000007Dh   
+VK_F15 . . . . . . . . . . . . .	Number	 0000007Eh   
+VK_F16 . . . . . . . . . . . . .	Number	 0000007Fh   
+VK_F17 . . . . . . . . . . . . .	Number	 00000080h   
+VK_F18 . . . . . . . . . . . . .	Number	 00000081h   
+VK_F19 . . . . . . . . . . . . .	Number	 00000082h   
+VK_F1  . . . . . . . . . . . . .	Number	 00000070h   
+VK_F20 . . . . . . . . . . . . .	Number	 00000083h   
+VK_F21 . . . . . . . . . . . . .	Number	 00000084h   
+VK_F22 . . . . . . . . . . . . .	Number	 00000085h   
+VK_F23 . . . . . . . . . . . . .	Number	 00000086h   
+VK_F24 . . . . . . . . . . . . .	Number	 00000087h   
+VK_F2  . . . . . . . . . . . . .	Number	 00000071h   
+VK_F3  . . . . . . . . . . . . .	Number	 00000072h   
+VK_F4  . . . . . . . . . . . . .	Number	 00000073h   
+VK_F5  . . . . . . . . . . . . .	Number	 00000074h   
+VK_F6  . . . . . . . . . . . . .	Number	 00000075h   
+VK_F7  . . . . . . . . . . . . .	Number	 00000076h   
+VK_F8  . . . . . . . . . . . . .	Number	 00000077h   
+VK_F9  . . . . . . . . . . . . .	Number	 00000078h   
+VK_HELP  . . . . . . . . . . . .	Number	 0000002Fh   
+VK_HOME  . . . . . . . . . . . .	Number	 00000024h   
+VK_INSERT  . . . . . . . . . . .	Number	 0000002Dh   
+VK_LBUTTON . . . . . . . . . . .	Number	 00000001h   
+VK_LCONTROL  . . . . . . . . . .	Number	 000000A2h   
+VK_LEFT  . . . . . . . . . . . .	Number	 00000025h   
+VK_LMENU . . . . . . . . . . . .	Number	 000000A4h   
+VK_LSHIFT  . . . . . . . . . . .	Number	 000000A0h   
+VK_MENU  . . . . . . . . . . . .	Number	 00000012h   
+VK_MULTIPLY  . . . . . . . . . .	Number	 0000006Ah   
+VK_NEXT  . . . . . . . . . . . .	Number	 00000022h   
+VK_NUMLOCK . . . . . . . . . . .	Number	 00000090h   
+VK_NUMPAD0 . . . . . . . . . . .	Number	 00000060h   
+VK_NUMPAD1 . . . . . . . . . . .	Number	 00000061h   
+VK_NUMPAD2 . . . . . . . . . . .	Number	 00000062h   
+VK_NUMPAD3 . . . . . . . . . . .	Number	 00000063h   
+VK_NUMPAD4 . . . . . . . . . . .	Number	 00000064h   
+VK_NUMPAD5 . . . . . . . . . . .	Number	 00000065h   
+VK_NUMPAD6 . . . . . . . . . . .	Number	 00000066h   
+VK_NUMPAD7 . . . . . . . . . . .	Number	 00000067h   
+VK_NUMPAD8 . . . . . . . . . . .	Number	 00000068h   
+VK_NUMPAD9 . . . . . . . . . . .	Number	 00000069h   
+VK_PAUSE . . . . . . . . . . . .	Number	 00000013h   
+VK_PRINT . . . . . . . . . . . .	Number	 0000002Ah   
+VK_PRIOR . . . . . . . . . . . .	Number	 00000021h   
+VK_RBUTTON . . . . . . . . . . .	Number	 00000002h   
+VK_RCONTROL  . . . . . . . . . .	Number	 000000A3h   
+VK_RETURN  . . . . . . . . . . .	Number	 0000000Dh   
+VK_RIGHT . . . . . . . . . . . .	Number	 00000027h   
+VK_RMENU . . . . . . . . . . . .	Number	 000000A5h   
+VK_RSHIFT  . . . . . . . . . . .	Number	 000000A1h   
+VK_SCROLL  . . . . . . . . . . .	Number	 00000091h   
+VK_SEPARATER . . . . . . . . . .	Number	 0000006Ch   
+VK_SHIFT . . . . . . . . . . . .	Number	 00000010h   
+VK_SNAPSHOT  . . . . . . . . . .	Number	 0000002Ch   
+VK_SPACE . . . . . . . . . . . .	Number	 00000020h   
+VK_SUBTRACT  . . . . . . . . . .	Number	 0000006Dh   
+VK_TAB . . . . . . . . . . . . .	Number	 00000009h   
+VK_UP  . . . . . . . . . . . . .	Number	 00000026h   
+WINDOW_BUFFER_SIZE_EVENT . . . .	Number	 00000004h   
+WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
+WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
+black  . . . . . . . . . . . . .	Number	 00000000h   
+blue . . . . . . . . . . . . . .	Number	 00000001h   
+brown  . . . . . . . . . . . . .	Number	 00000006h   
+cyan . . . . . . . . . . . . . .	Number	 00000003h   
+exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
+falseOutput  . . . . . . . . . .	Byte	 0000002B _DATA	
+gray . . . . . . . . . . . . . .	Number	 00000008h   
+green  . . . . . . . . . . . . .	Number	 00000002h   
+lightBlue  . . . . . . . . . . .	Number	 00000009h   
+lightCyan  . . . . . . . . . . .	Number	 0000000Bh   
+lightGray  . . . . . . . . . . .	Number	 00000007h   
+lightGreen . . . . . . . . . . .	Number	 0000000Ah   
+lightMagenta . . . . . . . . . .	Number	 0000000Dh   
+lightRed . . . . . . . . . . . .	Number	 0000000Ch   
+magenta  . . . . . . . . . . . .	Number	 00000005h   
+modeluTemp . . . . . . . . . . .	Number	 -00000004h   
+num  . . . . . . . . . . . . . .	Byte	 00000000 _DATA	
+red  . . . . . . . . . . . . . .	Number	 00000004h   
+res  . . . . . . . . . . . . . .	Byte	 00000007 _DATA	
+sum1 . . . . . . . . . . . . . .	Number	 -00000007h   
+temp1  . . . . . . . . . . . . .	Number	 -0000000Eh   
+tempAstring  . . . . . . . . . .	Number	 -0000000Eh   
+tempBstring  . . . . . . . . . .	Number	 -0000001Ch   
+tempCstring  . . . . . . . . . .	Number	 -0000002Ah   
+white  . . . . . . . . . . . . .	Number	 0000000Fh   
+wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
+yellow . . . . . . . . . . . . .	Number	 0000000Eh   
+
+	   0 Warnings
+	   0 Errors
